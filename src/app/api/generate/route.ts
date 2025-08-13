@@ -23,7 +23,7 @@ export async function POST(req: Request) {
       prompt: parsed.data.prompt,
       size: "1024x1024",
     });
-    const imageUrl = result.data[0]?.url;
+    const imageUrl = result.data?.[0]?.url;
     if (!imageUrl) throw new Error("No image returned");
     return NextResponse.json({ imageUrl });
   } catch (err) {
