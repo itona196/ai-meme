@@ -1,16 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "AI Meme Generator",
@@ -24,10 +13,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+ codex/build-mvp-ai-meme-generator
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-neutral-950 text-neutral-100`}
       >
         <div className="container mx-auto p-4">{children}</div>
+      <body className="antialiased">
+        {children}
+      main
       </body>
     </html>
   );
