@@ -8,19 +8,13 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en">
- codex/build-mvp-ai-meme-generator
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-neutral-950 text-neutral-100`}
-      >
+      <body className="antialiased min-h-screen bg-neutral-950 text-neutral-100">
         <div className="container mx-auto p-4">{children}</div>
-      <body className="antialiased">
-        {children}
-      main
       </body>
     </html>
   );

@@ -6,11 +6,7 @@ interface Meme {
   slug: string;
 }
 
-export default async function MemePage({
-  params,
-}: {
-  params: { slug: string };
-}) {
+export default async function MemePage({ params }: any) {
   const res = await fetch(
     `${process.env.NEXT_PUBLIC_BASE_URL}/api/memes/${params.slug}`,
     { cache: "no-store" }
