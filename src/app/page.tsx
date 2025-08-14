@@ -36,10 +36,19 @@ export default function Home() {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        cache: "no-store",
         body: JSON.stringify({ prompt }),
       });
       const data = await res.json();
-      setImageUrl(data.imageUrl || "");
+      console.log("generate =>", data);
+      if (res.ok && data?.imageUrl) {
+        const url = String(data.imageUrl);
+        setImageUrl(
+          url.startsWith("data:")
+            ? url
+            : url + (url.includes("?") ? "&" : "?") + `_ts=${Date.now()}`
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -111,6 +120,10 @@ export default function Home() {
               src={imageUrl}
               alt="preview"
               className="object-cover w-full h-full"
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).src =
+                  "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='500'%3E%3Crect width='100%25' height='100%25' fill='%23222'/%3E%3Ctext x='50%25' y='50%25' fill='white' text-anchor='middle' font-size='32' font-family='Arial'%3EImage failed%3C/text%3E%3C/svg%3E";
+              }}
             />
           )}
           {topText && (
