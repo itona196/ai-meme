@@ -29,30 +29,26 @@ export default function Home() {
     fetchMemes();
   }, []);
 
-  const generate = async () => {
-    if (!prompt) return;
-    setLoading(true);
-    try {
-      const res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        cache: "no-store",
-        body: JSON.stringify({ prompt }),
-      });
-      const data = await res.json();
-      console.log("generate =>", data);
-      if (res.ok && data?.imageUrl) {
-        const url = String(data.imageUrl);
-        setImageUrl(
-          url.startsWith("data:")
-            ? url
-            : url + (url.includes("?") ? "&" : "?") + `_ts=${Date.now()}`
-        );
-      }
-    } finally {
-      setLoading(false);
+const generate = async () => {
+  setLoading(true);
+  try {
+    const res = await fetch("/api/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      cache: "no-store",
+      body: JSON.stringify({ prompt }),
+    });
+    const data = await res.json();
+    console.log("generate =>", data);
+    if (res.ok && data?.imageUrl) {
+      const url = String(data.imageUrl);
+      setImageUrl(url.startsWith("data:") ? url : url + (url.includes("?") ? "&" : "?") + `_ts=${Date.now()}`);
     }
-  };
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const saveMeme = async () => {
     if (!imageUrl) return;
@@ -117,14 +113,17 @@ export default function Home() {
         <div className="relative aspect-square bg-neutral-800 rounded overflow-hidden">
           {imageUrl && (
             <img
-              src={imageUrl}
-              alt="preview"
-              className="object-cover w-full h-full"
-              onError={(e) => {
-                (e.currentTarget as HTMLImageElement).src =
-                  "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='500'%3E%3Crect width='100%25' height='100%25' fill='%23222'/%3E%3Ctext x='50%25' y='50%25' fill='white' text-anchor='middle' font-size='32' font-family='Arial'%3EImage failed%3C/text%3E%3C/svg%3E";
-              }}
-            />
+  src={imageUrl}
+  alt="preview"
+  className="object-cover w-full h-full"
+  referrerPolicy="no-referrer"
+  crossOrigin="anonymous"
+  onError={(e) => {
+    console.warn("Image failed:", imageUrl);
+    (e.currentTarget as HTMLImageElement).src = "https://source.unsplash.com/random/1024x1024/?fallback";
+  }}
+/>
+
           )}
           {topText && (
             <span className="absolute top-2 left-1/2 -translate-x-1/2 font-bold drop-shadow text-xl">

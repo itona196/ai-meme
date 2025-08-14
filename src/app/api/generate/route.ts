@@ -1,52 +1,62 @@
+// src/app/api/generate/route.ts
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic"; // évite tout cache côté Next
 
 type Body = { prompt?: string };
 
-function svgDataUrl(prompt: string, size = "1024x1024") {
+// Fallback garanti (toujours en HTTPS, toujours une image)
+function fallbackImage(size = "1024x1024") {
   const [w, h] = size.split("x");
-  const safe = (prompt || "AI Meme").slice(0, 80).replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  const svg = `
-  <svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">
-    <defs>
-      <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
-        <stop offset="0%" stop-color="#111"/>
-        <stop offset="100%" stop-color="#333"/>
-      </linearGradient>
-    </defs>
-    <rect width="100%" height="100%" fill="url(#g)"/>
-    <text x="50%" y="50%" text-anchor="middle" fill="#fff" font-family="Arial, Helvetica, sans-serif"
-          font-size="${Math.max(24, Math.floor(Number(w) / 20))}" dy=".35em">${safe}</text>
-  </svg>`;
-  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  return `https://placekitten.com/${w}/${h}`;
+}
+
+function json(body: any, status = 200) {
+  return NextResponse.json(body, {
+    status,
+    headers: {
+      "Cache-Control": "no-store, no-cache, must-revalidate",
+      "Pragma": "no-cache",
+      Expires: "0",
+    },
+  });
 }
 
 export async function POST(req: Request) {
   const { prompt = "" } = (await req.json().catch(() => ({}))) as Body;
 
+  // Mode maquette explicite
   if (process.env.IMAGE_MOCK_MODE === "true") {
-    return NextResponse.json({ imageUrl: svgDataUrl(prompt) });
+    const url = fallbackImage();
+    console.log("[/api/generate] MOCK =>", url);
+    return json({ imageUrl: url });
   }
 
   const apiKey = process.env.OPENAI_API_KEY;
+
+  // Pas de clé → fallback chaton
   if (!apiKey) {
-    return NextResponse.json({ imageUrl: svgDataUrl(prompt) });
+    const url = fallbackImage();
+    console.log("[/api/generate] NO KEY =>", url);
+    return json({ imageUrl: url });
   }
 
   try {
     const openai = new OpenAI({ apiKey });
-    const result = await openai.images.generate({
+    const r = await openai.images.generate({
       model: "gpt-image-1",
       prompt,
       size: "1024x1024",
     });
-    const url = result.data?.[0]?.url;
+    const url = r.data?.[0]?.url;
+    console.log("[/api/generate] OPENAI url =>", url);
     if (!url) throw new Error("No URL from OpenAI");
-    return NextResponse.json({ imageUrl: url });
-  } catch (err) {
-    console.error("[/api/generate] error:", err);
-    return NextResponse.json({ imageUrl: svgDataUrl(prompt) }, { status: 200 });
+    return json({ imageUrl: url });
+  } catch (err: any) {
+    const url = fallbackImage();
+    console.log("[/api/generate] ERROR => fallback", err?.code || err?.message, url);
+    return json({ imageUrl: url });
   }
 }
