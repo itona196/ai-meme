@@ -5,33 +5,34 @@ export const runtime = "nodejs";
 
 type Body = { prompt?: string };
 
-// --- Helpers mock basés sur le prompt ---
-function keywordsFromPrompt(prompt: string) {
-  return (prompt.toLowerCase().match(/[a-zà-ÿ]+/g) || [])
-    .filter((w) => w.length > 3)
-    .slice(0, 3)
-    .join(",");
-}
-
-function placeholderFromPrompt(prompt: string, size = "1024x1024") {
+function svgDataUrl(prompt: string, size = "1024x1024") {
   const [w, h] = size.split("x");
-  const tags = encodeURIComponent(keywordsFromPrompt(prompt) || "meme");
-  return `https://source.unsplash.com/random/${w}x${h}/?${tags}`;
+  const safe = (prompt || "AI Meme").slice(0, 80).replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const svg = `
+  <svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">
+    <defs>
+      <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
+        <stop offset="0%" stop-color="#111"/>
+        <stop offset="100%" stop-color="#333"/>
+      </linearGradient>
+    </defs>
+    <rect width="100%" height="100%" fill="url(#g)"/>
+    <text x="50%" y="50%" text-anchor="middle" fill="#fff" font-family="Arial, Helvetica, sans-serif"
+          font-size="${Math.max(24, Math.floor(Number(w) / 20))}" dy=".35em">${safe}</text>
+  </svg>`;
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 }
-
 
 export async function POST(req: Request) {
   const { prompt = "" } = (await req.json().catch(() => ({}))) as Body;
 
-  // Mode maquette explicite
   if (process.env.IMAGE_MOCK_MODE === "true") {
-    return NextResponse.json({ imageUrl: placeholderFromPrompt(prompt) });
+    return NextResponse.json({ imageUrl: svgDataUrl(prompt) });
   }
 
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    // Pas de clé → fallback mock
-    return NextResponse.json({ imageUrl: placeholderFromPrompt(prompt) });
+    return NextResponse.json({ imageUrl: svgDataUrl(prompt) });
   }
 
   try {
@@ -44,15 +45,8 @@ export async function POST(req: Request) {
     const url = result.data?.[0]?.url;
     if (!url) throw new Error("No URL from OpenAI");
     return NextResponse.json({ imageUrl: url });
-  } catch (err: any) {
-    // Quota atteint → fallback mock lié au prompt
-    if (err?.code === "billing_hard_limit_reached") {
-      return NextResponse.json(
-        { imageUrl: placeholderFromPrompt(prompt), note: "fallback: mock image (billing limit reached)" },
-        { status: 200 }
-      );
-    }
+  } catch (err) {
     console.error("[/api/generate] error:", err);
-    return NextResponse.json({ error: "image_generation_failed" }, { status: 500 });
+    return NextResponse.json({ imageUrl: svgDataUrl(prompt) }, { status: 200 });
   }
 }
