@@ -16,12 +16,9 @@ function keywordsFromPrompt(prompt: string) {
 function placeholderFromPrompt(prompt: string, size = "1024x1024") {
   const [w, h] = size.split("x");
   const tags = encodeURIComponent(keywordsFromPrompt(prompt) || "meme");
-  const seed = encodeURIComponent(prompt || "meme");
-  // Image liée au prompt (girafe, herbe, etc.)
-  return `https://loremflickr.com/${w}/${h}/${tags}?lock=${seed}`;
-  // Alternative :
-  // return `https://source.unsplash.com/random/${w}x${h}/?${tags}`;
+  return `https://source.unsplash.com/random/${w}x${h}/?${tags}`;
 }
+
 
 export async function POST(req: Request) {
   const { prompt = "" } = (await req.json().catch(() => ({}))) as Body;
